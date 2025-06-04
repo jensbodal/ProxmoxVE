@@ -1,0 +1,5 @@
+# Copy or symlink this file to ~/.codex/config.yaml
+model: openai:gpt-4o-mini
+safeCommands:
+  - "npm test"
+approvalMode: auto-edit

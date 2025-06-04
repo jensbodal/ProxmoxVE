@@ -1,0 +1,5 @@
+# Copy or symlink this file to ~/.config/aichat/config.yaml
+model: openai:gpt-4o-mini
+openai_api_key: ${OPENAI_API_KEY}
+temperature: 0.7
+history: 10
