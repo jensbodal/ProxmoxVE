@@ -1,0 +1,5 @@
+model: gpt-4o-mini
+read:
+  - CONTRIBUTING.md
+alias:
+  - fast:gpt-4o-mini

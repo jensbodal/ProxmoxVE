@@ -100,6 +100,9 @@ If you encounter any issues or have suggestions for improvement, file a new issu
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=community-scripts/ProxmoxVE&type=Date" />
  </picture>
 </a>
+## 🧠 AI Tooling
+See [docs/ai-tooling.md](docs/ai-tooling.md) for configuration details.
+
 
 ## 📜 License
 

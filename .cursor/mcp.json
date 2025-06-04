@@ -1,0 +1,4 @@
+{
+  "model": "gpt-4o-mini",
+  "mcpServers": ["http://localhost:11434/mcp"]
+}

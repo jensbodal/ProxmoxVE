@@ -1,11 +1,12 @@
 {
-    "files.associations": {
-        "*.func": "shellscript"
-    },
-    "files.eol": "\n",
-    "files.insertFinalNewline": true,
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-        "source.fixAll": "explicit"
-    }
+  "files.associations": {
+    "*.func": "shellscript"
+  },
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  "github.copilot.enable": true
 }
