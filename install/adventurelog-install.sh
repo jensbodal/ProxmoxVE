@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 tteck
-# Author: tteck
-# Co-Author: MickLesk (Canbiz)
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/seanmorley15/AdventureLog
 
@@ -16,33 +15,16 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  gpg \
   gdal-bin \
   libgdal-dev \
-  git \
-  python3-venv \
-  python3-pip
+  git
 msg_ok "Installed Dependencies"
 
-msg_info "Setting up Node.js Repository"
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
-msg_ok "Set up Node.js Repository"
+PYTHON_VERSION="3.12" setup_uv
+NODE_VERSION="22" NODE_MODULE="pnpm@latest" install_node_and_modules
+PG_VERSION="16" PG_MODULES="postgis" install_postgresql
 
-msg_info "Setting up PostgreSQL Repository"
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
-msg_ok "Set up PostgreSQL Repository"
-
-msg_info "Installing Node.js"
-$STD apt-get update
-$STD apt-get install -y nodejs
-$STD npm install -g pnpm
-msg_ok "Installed Node.js"
-
-msg_info "Install/Set up PostgreSQL Database"
-$STD apt-get install -y postgresql-16 postgresql-16-postgis
+msg_info "Set up PostgreSQL Database"
 DB_NAME="adventurelog_db"
 DB_USER="adventurelog_user"
 DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
@@ -62,15 +44,12 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/adventurelog.creds
 msg_ok "Set up PostgreSQL"
 
+fetch_and_deploy_gh_release "adventurelog" "seanmorley15/adventurelog"
+
 msg_info "Installing AdventureLog (Patience)"
 DJANGO_ADMIN_USER="djangoadmin"
 DJANGO_ADMIN_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
-cd /opt
-RELEASE=$(curl -fsSL https://api.github.com/repos/seanmorley15/AdventureLog/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/seanmorley15/AdventureLog/archive/refs/tags/v${RELEASE}.zip" -o $(basename "https://github.com/seanmorley15/AdventureLog/archive/refs/tags/v${RELEASE}.zip")
-unzip -q v${RELEASE}.zip
-mv AdventureLog-${RELEASE} /opt/adventurelog
 cat <<EOF >/opt/adventurelog/backend/server/.env
 PGHOST='localhost'
 PGDATABASE='${DB_NAME}'
@@ -95,11 +74,13 @@ DISABLE_REGISTRATION=False
 EOF
 cd /opt/adventurelog/backend/server
 mkdir -p /opt/adventurelog/backend/server/media
-$STD pip install --upgrade pip
-$STD pip install -r requirements.txt
-$STD python3 manage.py collectstatic --noinput
-$STD python3 manage.py migrate
-$STD python3 manage.py download-countries
+$STD uv venv /opt/adventurelog/backend/server/.venv
+$STD /opt/adventurelog/backend/server/.venv/bin/python -m ensurepip --upgrade
+$STD /opt/adventurelog/backend/server/.venv/bin/python -m pip install --upgrade pip
+$STD /opt/adventurelog/backend/server/.venv/bin/python -m pip install -r requirements.txt
+$STD /opt/adventurelog/backend/server/.venv/bin/python -m manage collectstatic --noinput
+$STD /opt/adventurelog/backend/server/.venv/bin/python -m manage migrate
+$STD /opt/adventurelog/backend/server/.venv/bin/python -m manage download-countries
 cat <<EOF >/opt/adventurelog/frontend/.env
 PUBLIC_SERVER_URL=http://$LOCAL_IP:8000
 BODY_SIZE_LIMIT=Infinity
@@ -112,7 +93,8 @@ echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Installed AdventureLog"
 
 msg_info "Setting up Django Admin"
-$STD python3 /opt/adventurelog/backend/server/manage.py shell <<EOF
+cd /opt/adventurelog/backend/server
+$STD .venv/bin/python -m manage shell <<EOF
 from django.contrib.auth import get_user_model
 UserModel = get_user_model()
 user = UserModel.objects.create_user('$DJANGO_ADMIN_USER', password='$DJANGO_ADMIN_PASS')
@@ -136,7 +118,7 @@ After=network.target postgresql.service
 
 [Service]
 WorkingDirectory=/opt/adventurelog/backend/server
-ExecStart=python3 manage.py runserver 0.0.0.0:8000
+ExecStart=/opt/adventurelog/backend/server/.venv/bin/python -m manage runserver 0.0.0.0:8000
 Restart=always
 EnvironmentFile=/opt/adventurelog/backend/server/.env
 
